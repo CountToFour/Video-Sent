@@ -10,9 +10,8 @@ export interface FeatureSentiment {
 
 export interface AnalysisResult {
   id: string
-  url: string
-  platform?: Platform
-  overall: { sentiment: Sentiment; score: number }
-  features: FeatureSentiment[]
-  createdAt: string
+  feature: string
+  sentiment: Sentiment
+  score: number
+  summary: string
 }

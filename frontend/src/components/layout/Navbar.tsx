@@ -13,7 +13,7 @@ export default function Navbar() {
           Video Sentiment Analyzer
         </Typography>
         <Button color="inherit" component={RouterLink} to="/">Home</Button>
-        <Button color="inherit" component={RouterLink} to="/dashboard">Dashboard</Button>
+        {/* <Button color="inherit" component={RouterLink} to="/dashboard">Dashboard</Button> */}
       </Toolbar>
     </AppBar>
   )

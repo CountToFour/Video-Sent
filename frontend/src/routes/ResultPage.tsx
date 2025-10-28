@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnalysisChart from '../components/AnalysisChart'
 import FeatureCard from '../components/FeatureCard'
+import axios from 'axios'
 
 export default function ResultPage() {
   const { id } = useParams()
@@ -18,18 +19,22 @@ export default function ResultPage() {
     let cancelled = false
 
     const poll = async () => {
-      try {
-        const status = await getJobStatus(id)
-        if (cancelled) return
-        setJob(status)
-        if (status.state === 'finished' && status.analysisId) {
-          const data = await getAnalysis(status.analysisId)
-          setAnalysis(data)
-        }
-        if (status.state === 'failed') setError(status.error || 'Analiza nie powiodła się')
-      } catch (e: any) {
-        setError(e?.message || 'Błąd')
-      }
+      const response = await axios.get('http://localhost:8000/api/nlp/sentiments/1/')
+
+      console.log(response.data)
+      setAnalysis(response.data)
+      // try {
+        // const status = await getJobStatus(id)
+        // if (cancelled) return
+        // setJob(status)
+        // if (status.state === 'finished' && status.analysisId) {
+          // const data = await getAnalysis(status.analysisId)
+          // setAnalysis(data)
+        // }
+        // if (status.state === 'failed') setError(status.error || 'Analiza nie powiodła się')
+      // } catch (e: any) {
+        // setError(e?.message || 'Błąd')
+      // }
     }
 
     poll()
@@ -43,17 +48,19 @@ export default function ResultPage() {
   return (
     <Paper sx={{ p: 4 }}>
       <Typography variant="h5">Wynik analizy</Typography>
-      <Typography variant="subtitle1">Ogólna ocena: {analysis.overall.sentiment} ({analysis.overall.score.toFixed(2)})</Typography>
-      <Typography variant="body2">URL: <a href={analysis.url} target="_blank">Otwórz</a></Typography>
+      <Typography variant="subtitle1">Ogólna ocena: {analysis.sentiment}</Typography>
+      <Typography variant="subtitle1">Feature: {analysis.feature}</Typography>
+      <Typography variant="subtitle2">Podsumowanie: {analysis.summary}</Typography>
+      {/* <Typography variant="body2">URL: <a href={analysis.url} target="_blank">Otwórz</a></Typography> */}
 
       <div style={{ marginTop: 20 }}>
-        <AnalysisChart features={analysis.features} />
+        {/* <AnalysisChart features={analysis.feature} /> */}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, marginTop: 20 }}>
-        {analysis.features.map((f: any) => (
-          <FeatureCard key={f.feature} feature={f.feature} sentiment={f.sentiment} score={f.score} examples={f.examples} />
-        ))}
+        {/* {analysis.feature.map((f: any) => (
+          <FeatureCard key={f.feature} feature={f.feature} sentiment={f.sentiment} score={f.score} />
+        ))} */}
       </div>
     </Paper>
   )
