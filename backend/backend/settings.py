@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'downloader',
     'dashboard',
     'nlp_core',
+    'dashboard.management',
     'speech_to_text',
     'rest_framework',
     'corsheaders',
