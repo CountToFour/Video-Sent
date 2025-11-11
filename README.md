@@ -7,7 +7,7 @@
 - Następnie należy wejść w kontener za pomocą aplikacji docker desktop lub za pomocą komendy:
 > docker exec -it video_sent_backend bash
 
-- Zrobić migracje i wygenerować seeda wewnątrz kontenera:
+- Zrobić migracje i wygenerować seed wewnątrz kontenera:
 > python manage.py migrate
 > 
 > python manage.py seeda
