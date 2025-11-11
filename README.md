@@ -9,6 +9,7 @@
 
 - Zrobić migracje i wygenerować seeda wewnątrz kontenera:
 > python manage.py migrate
+> 
 > python manage.py seeda
 
 - Następnie wchodzimy na http://localhost:5671 i wszystko powinno działać.
