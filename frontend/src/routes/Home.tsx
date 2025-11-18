@@ -16,7 +16,8 @@ export default function Home() {
     if (!url) return setError('Wklej link do wideo')
     try {
       setLoading(true)
-      // const res = await submitVideo(url, platform)
+      const res = await submitVideo(url, platform)
+      console.log(res)
       navigate(`/results/1`)
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message)
