@@ -6,7 +6,7 @@ from .models import Video
 from .serializers import VideoSerializer  # zakładam, że masz taki serializer
 from .services import get_or_create_video_with_audio
 from speech_to_text.services import transcribe_video
-
+from nlp_core import services as nlp_services
 
 class VideoViewSet(viewsets.ModelViewSet):
     queryset = Video.objects.all().order_by("-created_at")
@@ -31,6 +31,24 @@ class VideoViewSet(viewsets.ModelViewSet):
         try:
             video = get_or_create_video_with_audio(url)
             video = transcribe_video(video)
+            if not video.transcript_path:
+                return Response(
+                    {"detail": "Transkrypcja niedostępna."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                with open(video.transcript_path, "r", encoding="utf-8") as f:
+                    text = f.read()
+            except FileNotFoundError:
+                return Response(
+                    {"detail": "Plik transkrypcji nie istnieje."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            nlp_results = nlp_services.analyze_text(text)
+            # Zapis wyników do DB (FeatureSentiment) dla tego video
+            nlp_services.save_results_for_video(video, nlp_results)
+
         except Exception as e:
             return Response(
                 {"detail": str(e)},
@@ -38,7 +56,9 @@ class VideoViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(video)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        data = serializer.data
+        data["nlp_results"] = nlp_results  # do frontendu
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get"])
     def transcript(self, request, pk=None):
