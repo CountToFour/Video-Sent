@@ -21,7 +21,15 @@ def transcribe_audio_to_file(audio_path: str) -> str:
     if not audio_path.exists():
         raise FileNotFoundError(f"Audio not found: {audio_path}")
 
-    result = _model.transcribe(str(audio_path))
+    try:
+        result = _model.transcribe(str(audio_path), fp16=False)
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            "Nie udało się wczytać audio – sprawdź czy ffmpeg/ffprobe są zainstalowane i w PATH."
+        ) from e
+    except Exception as e:
+        raise RuntimeError(f"Transkrypcja nie powiodła się: {e}") from e
+
     text = (result.get("text") or "").strip()
 
     transcript_path = TRANSCRIPTS_DIR / f"{audio_path.stem}.txt"

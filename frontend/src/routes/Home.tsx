@@ -38,7 +38,7 @@ export default function Home() {
           <MenuItem value="instagram">Instagram</MenuItem>
         </TextField>
         <Button variant="contained" type="submit" disabled={loading}>{loading ? 'Wysyłanie...' : 'Analizuj wideo'}</Button>
-        <Typography variant="body2" color="text.secondary">Po wysłaniu backend pobierze wideo/transkrypcję i przeprowadzi analizę. Strona wyników będzie sprawdzać status zadania.</Typography>
+        <Typography variant="body2" color="text.secondary">Po wysłaniu backend pobierze wideo/transkrypcję i przeprowadzi analizę.</Typography>
       </Box>
     </Paper>
   )

@@ -2,17 +2,16 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
-import { ThemeProvider } from '@mui/material'
 import CssBaseline from '@mui/material/CssBaseline'
-import theme from './theme'
+import CustomThemeProvider from "./context/CustomeThemeProvider.tsx";
 
 createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </ThemeProvider>
-  </React.StrictMode>
+    <React.StrictMode>
+        <CustomThemeProvider>
+            <CssBaseline />
+            <BrowserRouter>
+                <App />
+            </BrowserRouter>
+        </CustomThemeProvider>
+    </React.StrictMode>
 )
