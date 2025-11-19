@@ -1,67 +1,42 @@
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { getJobStatus, getAnalysis } from '../services/api'
+import {useLocation, useNavigate, useParams} from 'react-router-dom'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import LoadingSpinner from '../components/LoadingSpinner'
-import AnalysisChart from '../components/AnalysisChart'
-import FeatureCard from '../components/FeatureCard'
-import axios from 'axios'
+import type { Video } from '../types'
+import {Box, Button} from "@mui/material";
+import FeatureChart from "../components/FeatureChart.tsx";
 
-export default function ResultPage() {
-  const { id } = useParams()
-  const [job, setJob] = useState<any>(null)
-  const [analysis, setAnalysis] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
+const ResultPage: React.FC = () => {
+    const location = useLocation()
+    const navigate = useNavigate()
 
-  useEffect(() => {
-    if (!id) return
-    let cancelled = false
+    const data = location.state as Video | undefined
 
-    const poll = async () => {
-      const response = await axios.get('http://localhost:8000/api/nlp/sentiments/1/')
-
-      console.log(response.data)
-      setAnalysis(response.data)
-      // try {
-        // const status = await getJobStatus(id)
-        // if (cancelled) return
-        // setJob(status)
-        // if (status.state === 'finished' && status.analysisId) {
-          // const data = await getAnalysis(status.analysisId)
-          // setAnalysis(data)
-        // }
-        // if (status.state === 'failed') setError(status.error || 'Analiza nie powiodła się')
-      // } catch (e: any) {
-        // setError(e?.message || 'Błąd')
-      // }
+    if (!data) {
+        return (
+            <Box>
+                <Typography variant="h6">Brak danych do wyświetlenia.</Typography>
+                <Button variant="contained" onClick={() => navigate("/")}>
+                    Powrót
+                </Button>
+            </Box>
+        )
     }
 
-    poll()
-    const iv = setInterval(poll, 3000)
-    return () => { cancelled = true; clearInterval(iv) }
-  }, [id])
+    return (
+        <Paper sx={{ p: 4 }}>
+            <Typography variant="h4" gutterBottom>
+                Wyniki analizy
+            </Typography>
 
-  if (error) return <Paper sx={{ p: 4 }}><Typography color="error">{error}</Typography></Paper>
-  if (!analysis) return <Paper sx={{ p: 4 }}><Typography variant="h6">Status zadania</Typography><pre>{JSON.stringify(job, null, 2)}</pre><LoadingSpinner /></Paper>
+            <Typography variant="h6" gutterBottom>
+                {data.title}
+            </Typography>
 
-  return (
-    <Paper sx={{ p: 4 }}>
-      <Typography variant="h5">Wynik analizy</Typography>
-      <Typography variant="subtitle1">Ogólna ocena: {analysis.sentiment}</Typography>
-      <Typography variant="subtitle1">Feature: {analysis.feature}</Typography>
-      <Typography variant="subtitle2">Podsumowanie: {analysis.summary}</Typography>
-      {/* <Typography variant="body2">URL: <a href={analysis.url} target="_blank">Otwórz</a></Typography> */}
-
-      <div style={{ marginTop: 20 }}>
-        {/* <AnalysisChart features={analysis.feature} /> */}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, marginTop: 20 }}>
-        {/* {analysis.feature.map((f: any) => (
-          <FeatureCard key={f.feature} feature={f.feature} sentiment={f.sentiment} score={f.score} />
-        ))} */}
-      </div>
-    </Paper>
-  )
+            {/* Wykres */}
+            <FeatureChart features={data.features} />
+        </Paper>
+    )
 }
+
+export default ResultPage;

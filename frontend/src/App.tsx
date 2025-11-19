@@ -12,7 +12,7 @@ export default function App() {
       <main style={{ padding: 24 }}>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/results/:id" element={<ResultPage />} />
+          <Route path="/results" element={<ResultPage />} />
         </Routes>
       </main>
     </div>
