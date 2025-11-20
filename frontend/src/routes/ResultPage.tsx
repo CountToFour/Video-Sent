@@ -2,7 +2,6 @@ import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import type { Video } from '../types'
 import { Box, Button } from "@mui/material";
 import FeatureChart from "../components/FeatureChart.tsx";
 
@@ -10,7 +9,7 @@ const ResultPage: React.FC = () => {
     const location = useLocation()
     const navigate = useNavigate()
 
-    const data = location.state as Video | undefined
+    const data = location.state
 
     if (!data) {
         return (
