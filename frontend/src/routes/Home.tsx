@@ -18,9 +18,9 @@ export default function Home() {
       setLoading(true)
       const res = await submitVideo(url, platform)
       console.log(res)
-        navigate("/results", {
-            state: res   // <-- przekazujesz cały wynik do ResultPage
-        })
+        // navigate("/results", {
+        //     state: res   // <-- przekazujesz cały wynik do ResultPage
+        // })
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message)
     } finally {
