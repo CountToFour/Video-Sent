@@ -15,15 +15,77 @@ except Exception:
 
 # Słownik cech i ich słów-kluczy (możesz rozszerzać)
 FEATURE_KEYWORDS: Dict[str, List[str]] = {
-    "bateria": ["bateria", "akumulator", "czas pracy", "ładowanie", "ładowarka", "szybkie ładowanie", "powerbank"],
-    "aparat": ["aparat", "kamera", "zdjęcia", "fotki", "fotografia", "wideo", "nagrywanie"],
-    "ekran": ["ekran", "wyświetlacz", "oled", "amoled", "lcd", "ips", "rozdzielczość", "jasność"],
-    "wydajność": ["wydajność", "szybkość", "procesor", "cpu", "gpu", "lag", "zacięcia", "płynność"],
-    "jakość": ["jakość", "wykonanie", "materiały", "obudowa", "design"],
-    "dźwięk": ["głośnik", "głośniki", "audio", "dźwięk", "słuchawki", "jack"],
-    "system": ["android", "ios", "system", "aktualizacje", "nakładka", "one ui", "miui"],
-    "pamięć": ["pamięć", "ram", "rom", "magazyn", "magazynowanie", "miejsce"],
-    "cena": ["cena", "koszt", "drogi", "tani", "opłacalność", "stosunek jakości do ceny"],
+    "bateria": [
+        "bateria", "akumulator", "czas pracy", "czas działania", "czas na baterii",
+        "czas screen on", "sot", "screen on time", "ładowanie", "ładowarka",
+        "szybkie ładowanie", "fast charge", "qc", "power delivery", "pd",
+        "ładowanie bezprzewodowe", "ładowanie indukcyjne", "qi",
+        "powerbank", "wytrzymałość baterii", "zużycie energii"
+    ],
+
+    "aparat": [
+        "aparat", "kamera", "kamerka", "moduł aparatu", "obiektyw", "sensor",
+        "zdjęcia", "fotki", "fotografia", "fotka", "wideo", "nagrywanie",
+        "video", "4k", "8k", "tryb nocny", "night mode", "hdr", "ostrość",
+        "stabilizacja", "ois", "eis", "zoom", "szeroki kąt", "ultrawide",
+        "selfie", "przednia kamera", "tryb portretowy"
+    ],
+
+    "ekran": [
+        "ekran", "wyświetlacz", "display", "oled", "amoled", "lcd", "ips",
+        "rozdzielczość", "full hd", "quad hd", "qhd", "4k",
+        "jasność", "nits", "kolory", "odświeżanie", "144hz", "120hz", "90hz",
+        "pwm", "kontrast", "dotyk", "responsywność ekranu", "zakrzywiony ekran",
+        "proporcje ekranu"
+    ],
+
+    "wydajność": [
+        "wydajność", "szybkość", "procesor", "cpu", "gpu", "chip", "chipset",
+        "lag", "lagi", "zacięcia", "przycięcia", "płynność", "benchmark",
+        "antutu", "geekbench", "ram", "przegrzewanie", "thermals",
+        "wydajność w grach", "fps", "opóźnienia", "responsywność"
+    ],
+
+    "jakość": [
+        "jakość", "wykonanie", "materiały", "obudowa", "design", "estetyka",
+        "aluminium", "plastik", "szkło", "ergonomia", "wytrzymałość", "solidność",
+        "certyfikat ip", "wodoodporność", "pyłoszczelność"
+    ],
+
+    "dźwięk": [
+        "głośnik", "głośniki", "audio", "dźwięk", "brzmienie", "jakość dźwięku",
+        "stereo", "dolby", "dolby atmos", "słuchawki", "jack", "3.5mm",
+        "mikrofon", "mikrofony", "połączenia głosowe", "rozmowy"
+    ],
+
+    "system": [
+        "android", "ios", "system", "aktualizacje", "update", "nakładka",
+        "one ui", "miui", "hyperos", "coloros", "oxygenos", "pixel experience",
+        "stabilność systemu", "błędy systemu", "bugi", "aktualizacja bezpieczeństwa"
+    ],
+
+    "pamięć": [
+        "pamięć", "ram", "rom", "magazyn", "magazynowanie", "miejsce",
+        "pamięć wewnętrzna", "storage", "micro sd", "karta pamięci",
+        "przestrzeń", "zajęte miejsce", "przechowywanie danych"
+    ],
+
+    "cena": [
+        "cena", "koszt", "drogi", "tani", "budżetowy", "opłacalność",
+        "stosunek jakości do ceny", "value", "przepłacony", "taniocha",
+        "promocja", "oferta", "wartość"
+    ],
+
+    "łączność": [
+        "wifi", "bluetooth", "5g", "lte", "4g", "zasięg", "modem",
+        "nfc", "gps", "galileo", "wifi calling", "volte", "esim", "dual sim",
+        "usb c", "usb-c", "otg"
+    ],
+
+    "ogólne wrażenia": [
+        "ogólnie", "wrażenia", "użytkowanie", "komfort", "codzienne użytkowanie",
+        "doświadczenie", "feel", "wygoda", "satysfakcja", "zadowolenie"
+    ],
 }
 
 # Model sentymentu: wielojęzyczny 1-5 gwiazdek (obsługuje PL); prosty w użyciu

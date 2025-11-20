@@ -1,38 +1,38 @@
-import { Bar } from "react-chartjs-2"
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Tooltip,
-    Legend
-} from "chart.js"
-import type {FeatureSentiment} from "../types"
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
+import React from "react";
+import { Bar } from "react-chartjs-2";
+import type { Feature } from "../types";
 
 interface Props {
-    features: FeatureSentiment[]
+    features?: Feature[];
 }
 
-export default function FeatureChart({ features }: Props) {
-    const labels = features.map(f => f.feature)
-    const scores = features.map(f => f.score)
+const FeatureChart: React.FC<Props> = ({ features = [] }) => {
 
-    const chartData = {
+    const labels = features.map(f => f.feature);
+    const scores = features.map(f => f.score);
+
+    const data = {
         labels,
         datasets: [
             {
-                label: "Wynik sentymentu",
+                label: "Wynik",
                 data: scores,
-                backgroundColor: "rgba(75, 192, 192, 0.5)",
-            }
-        ]
-    }
+                backgroundColor: "rgba(25, 118, 210, 0.4)",   // jasny niebieski
+                borderColor: "rgba(25, 118, 210, 1)",          // główny niebieski
+                borderWidth: 2,
+            },
+        ],
+    };
 
-    return (
-        <div style={{ width: 600, margin: "40px auto" }}>
-            <Bar data={chartData} />
-        </div>
-    )
-}
+    const options = {
+        scales: {
+            y: {
+                beginAtZero: true,
+            },
+        },
+    };
+
+    return <Bar data={data} options={options} />;
+};
+
+export default FeatureChart;
