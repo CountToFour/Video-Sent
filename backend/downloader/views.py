@@ -7,6 +7,8 @@ from .serializers import VideoSerializer  # zakładam, że masz taki serializer
 from .services import get_or_create_video_with_audio
 from speech_to_text.services import transcribe_video
 from nlp_core import services as nlp_services
+from nlp_core.groq_summary import summarize_nlp_results
+
 
 class VideoViewSet(viewsets.ModelViewSet):
     queryset = Video.objects.all().order_by("-created_at")
@@ -46,8 +48,17 @@ class VideoViewSet(viewsets.ModelViewSet):
                 )
 
             nlp_results = nlp_services.analyze_text(text)
+
+            # 👇 krótkie podsumowanie z Groqa dla mniej zaawansowanych użytkowników
+            try:
+                nlp_results["user_summary"] = summarize_nlp_results(nlp_results)
+            except Exception:
+                # jeśli Groq padnie, nie blokujemy całej analizy
+                nlp_results["user_summary"] = None
+
             # Zapis wyników do DB (FeatureSentiment) dla tego video
             nlp_services.save_results_for_video(video, nlp_results)
+
 
         except Exception as e:
             return Response(
