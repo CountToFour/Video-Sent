@@ -86,7 +86,7 @@ const ResultPage: React.FC = () => {
                     sx={{
                         p: 2,
                         mb: 3,
-                        backgroundColor: '#fff3e0',
+                        backgroundColor: '#1a8eed',
                     }}
                 >
                     <Typography variant="h6" gutterBottom>
