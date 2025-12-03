@@ -65,10 +65,15 @@ def get_or_create_video_with_audio(url: str) -> Video:
     - pobiera audio (jeśli brak),
     - zapisuje audio_path.
     """
+
+    platform = detect_platform(url)
+    if platform != Platform.YOUTUBE:
+        raise ValueError("Obsługiwane są wyłącznie linki z YouTube (youtube.com).")
+
     try:
         video = Video.objects.get(url=url)
     except Video.DoesNotExist:
-        video = Video(url=url, platform=detect_platform(url))
+        video = Video(url=url, platform=platform)
 
     if not video.audio_path:
         title, audio_path = download_audio_with_ytdlp(url)
