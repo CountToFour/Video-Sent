@@ -7,7 +7,9 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from downloader.models import Video, Platform
+from downloader.services import AUDIO_DIR
 from downloader.services import detect_platform, get_or_create_video_with_audio
+from downloader.services import download_audio_with_ytdlp
 
 
 # ---------------------------------------------------------
@@ -172,3 +174,76 @@ class VideoTranscriptTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["transcript"], "TEST CONTENT")
+
+class DownloadAudioWithYtDlpTest(TestCase):
+
+    @patch("downloader.services.yt_dlp.YoutubeDL")
+    def test_download_uses_direct_mp3_file(self, mock_ytdl):
+        """Gdy yt-dlp zwraca ID i plik mp3 istnieje — test podstawowej ścieżki."""
+
+        # 🔹 przygotowanie fejkowego MP3
+        fake_id = "abc123"
+        fake_mp3_path = AUDIO_DIR / f"{fake_id}.mp3"
+        fake_mp3_path.write_text("dummy")
+
+        # 🔹 mock yt-dlp obiektu
+        fake_info = {"id": fake_id, "title": "Test Video"}
+
+        mock_ydl_instance = MagicMock()
+        mock_ydl_instance.extract_info.return_value = fake_info
+
+        mock_ytdl.return_value.__enter__.return_value = mock_ydl_instance
+
+        # 🔹 wywołanie
+        title, path = download_audio_with_ytdlp("https://youtube.com/video")
+
+        # 🔹 asercje
+        self.assertEqual(title, "Test Video")
+        self.assertEqual(path, str(fake_mp3_path.resolve()))
+
+        # sprzątanie
+        fake_mp3_path.unlink()
+
+
+    @patch("downloader.services.yt_dlp.YoutubeDL")
+    def test_download_uses_fallback_filename(self, mock_ytdl):
+        """Gdy mp3 nie istnieje — sprawdzamy fallback przez prepare_filename()."""
+
+        fake_id = "xyz123"
+
+        fake_info = {"id": fake_id, "title": "Fallback Title"}
+
+        # 🔹 mock YoutubeDL() context manager
+        mock_ydl_instance = MagicMock()
+        mock_ydl_instance.extract_info.return_value = fake_info
+        mock_ydl_instance.prepare_filename.return_value = str(AUDIO_DIR / "fallback.mp3")
+
+        mock_ytdl.return_value.__enter__.return_value = mock_ydl_instance
+
+        # 🔹 generujemy plik fallback
+        fallback_file = AUDIO_DIR / "fallback.mp3"
+        fallback_file.write_text("dummy data")
+
+        title, path = download_audio_with_ytdlp("https://youtube.com/video")
+
+        self.assertEqual(title, "Fallback Title")
+        self.assertEqual(path, str(fallback_file.resolve()))
+
+        fallback_file.unlink()
+
+
+    @patch("downloader.services.yt_dlp.YoutubeDL")
+    def test_download_fails_when_no_files_exist(self, mock_ytdl):
+        """Sprawdzamy wyjątek, gdy yt-dlp nie stworzy żadnego pliku."""
+
+        fake_id = "z99"
+        fake_info = {"id": fake_id, "title": None}
+
+        mock_ydl_instance = MagicMock()
+        mock_ydl_instance.extract_info.return_value = fake_info
+        mock_ydl_instance.prepare_filename.return_value = str(AUDIO_DIR / "nonexistent.mp3")
+
+        mock_ytdl.return_value.__enter__.return_value = mock_ydl_instance
+
+        with self.assertRaises(FileNotFoundError):
+            download_audio_with_ytdlp("https://youtube.com/video")
