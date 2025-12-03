@@ -283,10 +283,31 @@ def analyze_text(text: str) -> Dict:
         # sort po ważności (najpierw te z większą liczbą zdań, potem po score)
         feature_results.sort(key=lambda x: (len(feature_sentences[x["feature"]]), x["score"]), reverse=True)
 
+        if feature_results:
+            feature_scores = [fr["score"] for fr in feature_results]
+            avg_overall = sum(feature_scores) / len(feature_scores)
+            if avg_overall < 0.4:
+                overall_label = "NEGATIVE"
+            elif avg_overall > 0.6:
+                overall_label = "POSITIVE"
+            else:
+                overall_label = "NEUTRAL"
+            overall = {
+                "label": overall_label,
+                "score": round(avg_overall, 4),
+            }
+        else:
+            # fallback, gdy nie wykryto żadnych cech – użyj wyniku z chunków
+            overall = {
+                "label": ov_res.label,
+                "score": round(ov_res.score, 4),
+            }
+
         return {
-            "overall": {"label": ov_res.label, "score": round(ov_res.score, 4)},
+            "overall": overall,
             "features": feature_results,
         }
+
     except RuntimeError as e:
         # problem z inicjalizacją modelu
         return {
