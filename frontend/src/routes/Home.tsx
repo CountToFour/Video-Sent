@@ -30,6 +30,7 @@ export default function Home() {
         }
 
         if (!isValidYouTubeURL(url)) {
+            setLoading(false)
             return setError('Podaj prawidłowy link do YouTube')
         }
 

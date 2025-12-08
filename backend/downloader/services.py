@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import yt_dlp
+from yt_dlp import DownloadError
 
 from .models import Video, Platform
 
@@ -39,9 +40,16 @@ def download_audio_with_ytdlp(url: str) -> tuple[str, str]:
             }
         ],
     }
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    except DownloadError as e:
+        error_msg = str(e).lower()
+        if "video unavailable" in error_msg:
+            raise ValueError("Podany film jest niedostępny (usunięty lub nieprawidłowy link).")
+        else:
+            raise ValueError(f"Nie udało się pobrać wideo: {e}")
 
     video_id = info.get("id")
     candidate = AUDIO_DIR / f"{video_id}.mp3"
