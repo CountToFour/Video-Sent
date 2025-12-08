@@ -1,15 +1,46 @@
-import axios from 'axios'
-
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api'
-const client = axios.create({ baseURL: API_BASE })
 
-export const submitVideo = async (url: string, platform: string) => {
-  const res = await client.post('/downloader/videos/from_url/',
-      {
-          url: url,
-          platform: platform
-      }
-  )
-  return res.data
-}
+export const analyzeVideo = async (
+    url: string,
+    onProgress: (msg: string, progress: number) => void
+): Promise<any> => {
+    const response = await fetch(`${API_BASE}/downloader/videos/from_url/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, platform: 'youtube' }),
+    });
 
+    if (!response.ok || !response.body) throw new Error(response.statusText);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+                const data = JSON.parse(line);
+
+                if (data.type === 'progress') {
+                    onProgress(data.message, data.progress || 0);
+                } else if (data.type === 'complete') {
+                    return data.data;
+                } else if (data.type === 'error') {
+                    throw new Error(data.message);
+                }
+            } catch (e) {
+                console.error("JSON parse error", e);
+            }
+        }
+    }
+
+    throw new Error("Połączenie przerwane przed otrzymaniem wyniku.");
+};
