@@ -1,7 +1,7 @@
 from django.test import TestCase
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import whisper
 
 from downloader.models import Video
@@ -35,8 +35,11 @@ class TranscribeAudioToFileTests(TestCase):
 
     def test_missing_audio_raises(self):
         missing_path = self.audio_dir / "missing.mp3"
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaises(RuntimeError) as ctx:
             stt_services.transcribe_audio_to_file(str(missing_path))
+
+        msg = str(ctx.exception)
+        self.assertIn("Błąd procesu transkrypcji: Plik audio nie istnieje", msg)
 
     def test_returns_existing_when_no_overwrite(self):
         audio_path = self.audio_dir / "file.mp3"
@@ -69,10 +72,12 @@ class TranscribeAudioToFileTests(TestCase):
                       self.mock_model.transcribe.call_args.args[0]
         self.assertEqual(Path(called_path), audio_path)
 
+
     def test_wraps_whisper_generic_error(self):
         """
         Gdy _model.transcribe rzuci dowolny inny wyjątek,
-        funkcja powinna rzucić RuntimeError z komunikatem 'Transkrypcja nie powiodła się: ...'.
+        funkcja powinna rzucić RuntimeError z komunikatem
+        'Błąd procesu transkrypcji: ...'.
         """
         audio_path = self.audio_dir / "file4.mp3"
         audio_path.write_text("dummy audio", encoding="utf-8")
@@ -83,10 +88,11 @@ class TranscribeAudioToFileTests(TestCase):
             stt_services.transcribe_audio_to_file(str(audio_path), overwrite=True)
 
         msg = str(ctx.exception)
-        self.assertIn("Transkrypcja nie powiodła się: GPU out of memory", msg)
+        self.assertIn("Błąd procesu transkrypcji: GPU out of memory", msg)
 
         transcript_path = self.transcripts_dir / f"{audio_path.stem}.txt"
         self.assertFalse(transcript_path.exists())
+
 
 
 class TranscribeVideoTests(TestCase):
@@ -122,14 +128,87 @@ class TranscribeVideoTests(TestCase):
             audio_path=str(audio_path.resolve()),
         )
 
-    def test_no_audio_path_raises(self):
+    @patch("speech_to_text.services.download_audio_with_ytdlp")
+    def test_no_audio_path_download_fails_raises_value_error(self, mock_dl):
+        """
+        Dla braku audio_path funkcja próbuje pobrać audio;
+        jeśli pobranie się nie uda, rzuca ValueError z odpowiednim komunikatem.
+        """
         video = Video.objects.create(
             url="https://example.com/no-audio",
             platform="other",
             audio_path="",
         )
-        with self.assertRaises(ValueError):
+        mock_dl.side_effect = Exception("network error")
+
+        with self.assertRaises(ValueError) as ctx:
             stt_services.transcribe_video(video)
+
+        msg = str(ctx.exception)
+        self.assertIn("Nie udało się pobrać brakującego audio", msg)
+
+    @patch("speech_to_text.services.download_audio_with_ytdlp")
+    def test_missing_audio_file_is_re_downloaded_successfully(self, mock_dl):
+        """
+        Jeśli video.audio_path wskazuje na plik, który NIE istnieje na dysku,
+        transcribe_video powinno spróbować pobrać audio ponownie i kontynuować
+        transkrypcję na nowej ścieżce.
+        """
+        # Tworzymy wideo ze ścieżką do nieistniejącego pliku
+        missing_audio_path = self.audio_dir / "missing.mp3"
+        video = Video.objects.create(
+            url="https://example.com/missing",
+            platform="other",
+            audio_path=str(missing_audio_path),
+        )
+
+        # Symulujemy udane pobranie nowego pliku audio
+        repaired_audio_path = self.audio_dir / "repaired.mp3"
+        repaired_audio_path.write_text("new audio", encoding="utf-8")
+        mock_dl.return_value = ("title", str(repaired_audio_path.resolve()))
+
+        # Model Whisper zwraca jakiś tekst
+        self.mock_model.transcribe.return_value = {"text": "Repaired text"}
+
+        updated = stt_services.transcribe_video(video, force=False)
+
+        # After self-healing, audio_path powinien być zaktualizowany
+        video.refresh_from_db()
+        self.assertEqual(video.audio_path, str(repaired_audio_path.resolve()))
+
+        # Powinien powstać plik transkrypcji na bazie nowej ścieżki
+        expected_transcript = self.transcripts_dir / f"{repaired_audio_path.stem}.txt"
+        self.assertTrue(expected_transcript.exists())
+        self.assertEqual(updated.transcript_path, str(expected_transcript.resolve()))
+
+        # download_audio_with_ytdlp powinien zostać wywołany raz
+        mock_dl.assert_called_once_with(video.url)
+        self.mock_model.transcribe.assert_called_once()
+
+    @patch("speech_to_text.services.download_audio_with_ytdlp")
+    def test_missing_audio_file_repair_failure_raises_runtime_error(self, mock_dl):
+        """
+        Jeśli plik audio nie istnieje i próba ponownego pobrania kończy się błędem,
+        transcribe_video powinno rzucić RuntimeError z odpowiednim komunikatem.
+        """
+        missing_audio_path = self.audio_dir / "missing2.mp3"
+        video = Video.objects.create(
+            url="https://example.com/missing2",
+            platform="other",
+            audio_path=str(missing_audio_path),
+        )
+
+        mock_dl.side_effect = Exception("network down")
+
+        with self.assertRaises(RuntimeError) as ctx:
+            stt_services.transcribe_video(video, force=False)
+
+        msg = str(ctx.exception)
+        self.assertIn("Nie udało się naprawić brakującego pliku audio: network down", msg)
+        mock_dl.assert_called_once_with(video.url)
+
+        # Upewniamy się, że transkrypcja nie została wykonana
+        self.mock_model.transcribe.assert_not_called()
 
     def test_uses_existing_transcript_when_set(self):
         video = self._create_video_with_audio("a1.mp3")

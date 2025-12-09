@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 from unittest.mock import patch, MagicMock
@@ -134,8 +135,15 @@ class VideoViewSetFromUrlTest(TestCase):
         response = self.client.post(self.url, {"url": video.url}, format="json")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("nlp_results", response.data)
-        self.assertIn("summary", response.data["nlp_results"]["user_summary"])
+
+        raw = b"".join(response.streaming_content).decode("utf-8").strip().splitlines()
+        last_line = raw[-1]
+        payload = json.loads(last_line)
+
+        self.assertEqual(payload.get("type"), "complete")
+        data = payload.get("data", {})
+        self.assertIn("nlp_results", data)
+        self.assertIn("summary", data["nlp_results"]["user_summary"])
 
     def test_from_url_missing_body(self):
         response = self.client.post(self.url, {}, format="json")
@@ -247,3 +255,73 @@ class DownloadAudioWithYtDlpTest(TestCase):
 
         with self.assertRaises(FileNotFoundError):
             download_audio_with_ytdlp("https://youtube.com/video")
+
+class VideoFromUrlStreamingTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("video-from-url")
+
+    @patch("downloader.views.summarize_nlp_results", return_value="summary text")
+    @patch("downloader.views.nlp_services.save_results_for_video")
+    @patch("downloader.views.nlp_services.analyze_text", return_value={"overall": {"label": "POSITIVE"}})
+    @patch("downloader.views.transcribe_video")
+    @patch("downloader.views.get_or_create_video_with_audio")
+    def test_event_stream_success_flow(
+            self, mock_get_or_create, mock_transcribe, mock_analyze, mock_save, mock_summary
+    ):
+        # 🔹 przygotuj fejkowy Video z istniejącą transkrypcją
+        tmp_transcript_path = os.path.join(tempfile.gettempdir(), "stream_test_transcript.txt")
+        with open(tmp_transcript_path, "w", encoding="utf-8") as f:
+            f.write("fake transcript content")
+
+        video = Video.objects.create(
+            url="https://youtube.com/x",
+            title="T",
+            platform=Platform.YOUTUBE,
+            audio_path=os.path.join(tempfile.gettempdir(), "audio.mp3"),
+            transcript_path=tmp_transcript_path,
+        )
+
+        mock_get_or_create.return_value = video
+        mock_transcribe.return_value = video
+
+        # 🔹 wywołanie endpointu
+        response = self.client.post(self.url, {"url": video.url}, format="json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/x-ndjson")
+
+        # 🔹 odczyt strumienia
+        raw_lines = b"".join(response.streaming_content).decode("utf-8").strip().splitlines()
+        self.assertGreaterEqual(len(raw_lines), 5)  # kilka eventów progress + complete
+
+        # sparsuj wszystkie linie
+        events = [json.loads(line) for line in raw_lines]
+
+        # 1) pierwsze eventy typu "progress"
+        types = [e["type"] for e in events]
+        self.assertIn("progress", types)
+        self.assertIn("complete", types)
+
+        # sprawdź konkretny komunikat inicjalizacji
+        first = events[0]
+        self.assertEqual(first["type"], "progress")
+        self.assertEqual(first["message"], "Inicjalizacja...")
+        self.assertEqual(first["progress"], 5)
+
+        # 2) ostatni event powinien być typu "complete" z danymi
+        last = events[-1]
+        self.assertEqual(last["type"], "complete")
+        self.assertIn("data", last)
+
+        data = last["data"]
+        self.assertIn("nlp_results", data)
+        self.assertIn("user_summary", data["nlp_results"])
+        self.assertEqual(data["nlp_results"]["user_summary"], "summary text")
+
+        # 3) upewnijmy się, że pipeline został uruchomiony
+        mock_get_or_create.assert_called_once()
+        mock_transcribe.assert_called_once_with(video)
+        mock_analyze.assert_called_once()
+        mock_save.assert_called_once()
+        mock_summary.assert_called_once()
