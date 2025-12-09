@@ -26,6 +26,7 @@ export default function Home() {
         setProgressMsg('Inicjalizacja...')
 
         if (!url) {
+            setLoading(false)
             return setError('Wklej link do wideo')
         }
 
@@ -39,6 +40,15 @@ export default function Home() {
                 setProgressMsg(msg);
                 setProgressValue(progress);
             });
+
+            if (
+                !res.nlp_results ||
+                !Array.isArray(res.nlp_results.features) ||
+                res.nlp_results.features.length < 3
+            ) {
+                setError("Nie udało się przetworzyć wideo. Upewnij się, że podany link prowadzi do poprawnego filmu YouTube.")
+                return
+            }
 
             navigate("/results", { state: res })
         } catch (err: any) {
